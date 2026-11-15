@@ -1,18 +1,27 @@
 from fastapi import FastAPI
+from fastapi.middleware.cors import CORSMiddleware
+from app.core.config import settings
+from app.modules.video.router import router as video_router
 
-# Inicializamos la aplicación FastAPI con metadatos descriptivos
 app = FastAPI(
-    title="Video Editor Backend",
-    description="API modular para procesamiento y recorte de vídeo 🚀",
-    version="1.0.0"
+    title=settings.PROJECT_NAME,
+    version=settings.VERSION,
+    description="API modular para procesamiento y generación de clips automáticos con FFmpeg y Whisper"
 )
+
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=settings.CORS_ORIGINS,
+    allow_credentials=True,
+    allow_methods=["*"],
+    allow_headers=["*"],
+)
+
+app.include_router(video_router)
 
 @app.get("/")
 def read_root():
-    """
-    Endpoint raíz para verificar que el servidor está activo y funcionando.
-    """
     return {
         "status": "online",
-        "message": "Bienvenido al backend del editor de vídeo 🚀"
+        "message": "Bienvenido al backend de Clipofia 🚀"
     }
