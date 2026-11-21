@@ -64,9 +64,9 @@ class VideoProcessingService:
             )
 
             return temp_output_path
-
+    
         except Exception as e:
-            logger.error(f"Error crítico en el servicio de vídeo: {str(e)}")
+            logger.exception(f"Error crítico en el servicio de vídeo:")
             if temp_output_path:
                 FileManager.safe_delete(temp_output_path)
             raise e

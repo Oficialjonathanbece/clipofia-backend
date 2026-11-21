@@ -1,9 +1,57 @@
 import subprocess
 import os
+import glob
 import logging
+import shutil
 from typing import Optional
 
 logger = logging.getLogger(__name__)
+
+def _resolve_ffmpeg_executable() -> str:
+    """
+    Resuelve la ruta del ejecutable ffmpeg:
+    1. Usa FFMPEG_PATH si está definida y apunta a un archivo existente.
+    2. Busca 'ffmpeg' en el PATH del proceso actual.
+    3. Revisa rutas habituales en Windows (instalación manual o vía winget).
+    """
+    env_path = os.getenv("FFMPEG_PATH")
+    if env_path and os.path.exists(env_path):
+        return env_path
+
+    found = shutil.which("ffmpeg")
+    if found:
+        return found
+
+    candidate_paths = [
+        r"C:\ffmpeg\bin\ffmpeg.exe",
+        r"C:\Program Files\ffmpeg\bin\ffmpeg.exe",
+    ]
+
+    local_app_data = os.getenv("LOCALAPPDATA")
+    if local_app_data:
+        winget_pattern = os.path.join(
+            local_app_data,
+            "Microsoft",
+            "WinGet",
+            "Packages",
+            "Gyan.FFmpeg*",
+            "**",
+            "ffmpeg.exe",
+        )
+        candidate_paths.extend(glob.glob(winget_pattern, recursive=True))
+
+    for path in candidate_paths:
+        if os.path.exists(path):
+            logger.info(f"FFmpeg resuelto en ruta candidata: {path}")
+            return path
+
+
+    logger.error(f"No se encontró ffmpeg.exe. Rutas comprobadas: {candidate_paths}")
+    raise FileNotFoundError(
+        f"No se encontró ffmpeg.exe. Verifica que exista en C:\\ffmpeg\\bin\\ffmpeg.exe. Rutas revisadas: {candidate_paths}"
+    )
+
+    return "ffmpeg"
 
 class FFmpegService:
     """
@@ -45,9 +93,11 @@ class FFmpegService:
             # Encadenamos el filtro de subtítulos al filtro de vídeo existente
             video_filter = f"{video_filter},subtitles='{safe_sub_path}'"
 
+        ffmpeg_exe = _resolve_ffmpeg_executable()    
+
         # 3. Construcción del comando de FFmpeg
         command = [
-            "ffmpeg",
+            "ffmpeg_exe",
             "-y",
             "-ss", str(start_time),
             "-to", str(end_time),
@@ -60,11 +110,14 @@ class FFmpegService:
             output_path
         ]
 
+        logger.info(f"Ejecutable FFmpeg: {ffmpeg_exe}")
         logger.info(f"Ejecutando comando FFmpeg con filtros: {video_filter}")
 
+        logger.info(f"Ejecutando FFmpeg ({ffmpeg_exe}) con filtros: {video_filter}")
         try:
             result = subprocess.run(
                 command,
+                executable=ffmpeg_exe,
                 stdout=subprocess.PIPE,
                 stderr=subprocess.PIPE,
                 text=True,
