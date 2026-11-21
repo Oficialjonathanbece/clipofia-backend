@@ -1,7 +1,7 @@
 from fastapi import APIRouter, UploadFile, File, Form, HTTPException, BackgroundTasks
 from fastapi.responses import FileResponse
 import os
-from app.modules.video.schemas import VideoProcessSchema
+from app.modules.video.shemas import VideoProcessSchema
 from app.modules.video.services import VideoProcessingService
 
 router = APIRouter(
